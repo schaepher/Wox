@@ -40,6 +40,31 @@ https://github.com/user-attachments/assets/15ad1370-bbc0-4f96-8729-56fcc769c41c
 | Arch Linux | AUR | `yay -S wox-bin` |
 | macOS / Linux / Windows | Manual | Download the latest stable package from [Releases](https://github.com/Wox-launcher/Wox/releases) and run it directly |
 
+
+Compile for mac
+------------
+
+```
+install xcode on AppStore - for flutter
+
+brew install just nodejs flutter cocoapods pnpm lefthook
+
+just dev
+
+cd Wox
+go build -ldflags="-X wox/util.ProEnv=true" .
+
+./wox
+```
+
+## Default Shortcuts
+
+| Action | Shortcut |
+| --- | --- |
+| Open or hide Wox | <kbd>Alt</kbd>/<kbd>Command</kbd> + <kbd>Space</kbd> |
+| Show item actions | <kbd>Alt</kbd>/<kbd>Command</kbd> + <kbd>J</kbd> |
+| Close or go back | <kbd>Esc</kbd> |
+
 ## Documentation
 
 - [Project documentation](https://www.woxlauncher.com/)
