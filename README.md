@@ -28,6 +28,23 @@ It is a practical alternative to [Alfred](https://www.alfredapp.com/) and [Rayca
 | Arch Linux | AUR | `yay -S wox-bin` |
 | macOS / Linux / Windows | Manual | Download the latest package from [Releases](https://github.com/Wox-launcher/Wox/releases) and run it directly |
 
+
+Compile for mac
+------------
+
+```
+install xcode on AppStore - for flutter
+
+brew install just nodejs flutter cocoapods pnpm lefthook
+
+just dev
+
+cd Wox
+go build -ldflags="-X wox/util.ProEnv=true" .
+
+./wox
+```
+
 ## Default Shortcuts
 
 | Action | Shortcut |
