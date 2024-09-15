@@ -18,3 +18,5 @@ wox.plugin.python/wox_plugin.egg-info/
 .venv/
 .ruff_cache/
 .mypy_cache/
+Wox/wox
+Wox/wox.exe

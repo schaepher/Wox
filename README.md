@@ -32,6 +32,21 @@ Download from [releases](https://github.com/Wox-launcher/Wox/releases) and run t
 `brew tap wox-launcher/wox`  
 `brew install wox`
 
+- Compile for mac
+
+```
+install xcode on AppStore - for flutter
+
+brew install just nodejs flutter cocoapods pnpm lefthook
+
+just dev
+
+cd Wox
+go build -ldflags="-X wox/util.ProEnv=true" .
+
+./wox
+```
+
 Usage
 -----
 
