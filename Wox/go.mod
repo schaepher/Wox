@@ -6,6 +6,7 @@ toolchain go1.22.1
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/cdfmlr/ellipsis v0.0.1
 	github.com/disintegration/imaging v1.6.2
 	github.com/djherbis/buffer v1.2.0
