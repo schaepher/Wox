@@ -3,11 +3,14 @@ package system
 import (
 	"context"
 	"fmt"
-	"github.com/mitchellh/go-homedir"
 	"os"
+	"strconv"
 	"strings"
 	"wox/plugin"
 	"wox/util"
+
+	"github.com/blevesearch/bleve"
+	"github.com/mitchellh/go-homedir"
 )
 
 var browserBookmarkIcon = plugin.NewWoxImageBase64(`data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAsTAAALEwEAmpwYAAAC9UlEQVR4nO1bTW8SURSdahfWdf0l6u9whfoPdNtNo2Ye07jRtNbE2LU1UZgHiZLUiJpIqXVhWw2ygkZMdGNTrMaApYChHHOnSJpWyswwH8z03uQkBN5M7j1z77sfvFEUFhYWlj6iaTihSlxWdbxUJcpCAk5h5skv4PMVW6Br99+ro9uLqI5LCjCiOCHXkzij6lhy0mi3CDiArBbD+EDGaws4LXR8cMt4lwkgvJ9IYsw2AULippvGe0AAhYVm7+lnMarq+Bl0AoSOH2SLnad/3m3jPSFAAjfiOGedAB0XwkIA2WKZgKhEJCwEkC1MgFWJsgeAQ0DwHgDeBAVnAXAaFFwH4BAJt1JtbHyvo1mrmUJ9u4aVYjM8hdCDTMu08f9QqexYIqBamDQwlARoCeD1xz/IlxqmkPvUwKOl1qH7TB8goF26ilLuHvRXOUwlWgboM31Hv+1fOx2GUjiaaONrfgaVwjUsv03hbmqr51r6jdZUi5P4kp81rg08AcILkpkAuOMBc+ldxJdbphB70zIyR2g8YC69i8a2tSywUa4fbwK+hYkAYSMEbj8NUQiIAIEJkOwBEVdK4UzefClsFVQ6P+6UzrPP2lhbb/53HelAungeAvM2miG7zRN1kUeto8bMn3a4bL4dtgpqn98V9tpn8oRqdadnau2XXXgPkLwJRhwPAREgsAdIn2eCvyu17jRotdg0NjinNkvSoV+XORQzwZXOQJRSm9MZw5c0qFmYCa6uN3FnYe8pkSdQkeNUwUQ6+FIIiQCBCZDsARHfByLxI/BwsdWNY9rRaXhi9lrSITAjseYRoM2M7mvl7zYC6dCPhGARULZOwH0/CBDHPQREgMAESPaAyNAelRVewM5RWeHRYWlPkMRZywRoWYzSUXPflR8QqsRWJImTlgkgETqm/DbAAaiKXZlIYoxeOwns09exps3jlDKIaDGMqzoW/TbGBjIDvzTVFWBETeCiKpEWEptDYFwvbAodz42879RrcywsLEqY5S+u/BSNeloCCQAAAABJRU5ErkJggg==`)
@@ -17,13 +20,15 @@ func init() {
 }
 
 type Bookmark struct {
-	Name string
-	Url  string
+	Name      string
+	NameLower string
+	Url       string
 }
 
 type BrowserBookmarkPlugin struct {
 	api       plugin.API
 	bookmarks []Bookmark
+	index     bleve.Index
 }
 
 func (c *BrowserBookmarkPlugin) GetMetadata() plugin.Metadata {
@@ -60,46 +65,66 @@ func (c *BrowserBookmarkPlugin) Init(ctx context.Context, initParams plugin.Init
 			c.bookmarks = append(c.bookmarks, chromeBookmarks...)
 		}
 	}
+
+	for idx, bookmark := range c.bookmarks {
+		bookmark.NameLower = strings.ToLower(bookmark.Name)
+		c.bookmarks[idx] = bookmark
+	}
+
+	indexMapping := bleve.NewIndexMapping()
+	index, _ := bleve.NewMemOnly(indexMapping)
+	c.index = index
+
+	for idx, bookmark := range c.bookmarks {
+		index.Index(fmt.Sprint(idx), bookmark)
+	}
 }
 
 func (c *BrowserBookmarkPlugin) Query(ctx context.Context, query plugin.Query) (results []plugin.QueryResult) {
-	for _, b := range c.bookmarks {
-		var bookmark = b
-		var isMatch bool
-		var matchScore int64
+	results = make([]plugin.QueryResult, 0)
 
-		var minMatchScore int64 = 10 // bookmark plugin has strict match score to avoid too many unrelated results
-		isNameMatch, nameScore := IsStringMatchScore(ctx, bookmark.Name, query.Search)
-		if isNameMatch && nameScore >= minMatchScore {
-			isMatch = true
-			matchScore = nameScore
-		} else {
-			//url match must be exact part match
-			if strings.Contains(bookmark.Url, query.Search) {
-				isUrlMatch, urlScore := IsStringMatchScoreNoPinYin(ctx, bookmark.Url, query.Search)
-				if isUrlMatch && urlScore >= minMatchScore {
-					isMatch = true
-					matchScore = urlScore
-				}
+	q := bleve.NewMatchQuery(query.Search)
+	searchRequest := bleve.NewSearchRequest(q)
+	searchRequest.Size = 50
+	searchResult, err := c.index.Search(searchRequest)
+	if err != nil || searchResult == nil {
+		return
+	}
+
+	fields := strings.Fields(query.Search)
+	for index, field := range fields {
+		fields[index] = strings.ToLower(field)
+	}
+
+	for _, hit := range searchResult.Hits {
+		id, _ := strconv.Atoi(hit.ID)
+		bookmark := c.bookmarks[id]
+
+		containsAll := true
+		for _, term := range fields {
+			if !strings.Contains(bookmark.NameLower, term) {
+				containsAll = false
+				break
 			}
 		}
+		if !containsAll {
+			continue
+		}
 
-		if isMatch {
-			results = append(results, plugin.QueryResult{
-				Title:    bookmark.Name,
-				SubTitle: bookmark.Url,
-				Score:    matchScore,
-				Icon:     browserBookmarkIcon,
-				Actions: []plugin.QueryResultAction{
-					{
-						Name: "i18n:plugin_browser_bookmark_open_in_browser",
-						Action: func(ctx context.Context, actionContext plugin.ActionContext) {
-							util.ShellOpen(bookmark.Url)
-						},
+		results = append(results, plugin.QueryResult{
+			Title:    bookmark.Name,
+			SubTitle: bookmark.Url,
+			Score:    int64(hit.Score * 100),
+			Icon:     browserBookmarkIcon,
+			Actions: []plugin.QueryResultAction{
+				{
+					Name: "i18n:plugin_browser_bookmark_open_in_browser",
+					Action: func(ctx context.Context, actionContext plugin.ActionContext) {
+						util.ShellOpen(bookmark.Url)
 					},
 				},
-			})
-		}
+			},
+		})
 	}
 
 	return
