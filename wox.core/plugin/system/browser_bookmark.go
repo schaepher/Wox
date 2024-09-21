@@ -58,12 +58,10 @@ func (c *BrowserBookmarkPlugin) GetMetadata() plugin.Metadata {
 func (c *BrowserBookmarkPlugin) Init(ctx context.Context, initParams plugin.InitParams) {
 	c.api = initParams.API
 
-	if util.IsMacOS() {
-		profiles := []string{"Default", "Profile 1", "Profile 2", "Profile 3"}
-		for _, profile := range profiles {
-			chromeBookmarks := c.loadChromeBookmarkInMacos(ctx, profile)
-			c.bookmarks = append(c.bookmarks, chromeBookmarks...)
-		}
+	profiles := []string{"Default", "Profile 1", "Profile 2", "Profile 3"}
+	for _, profile := range profiles {
+		chromeBookmarks := c.loadChromeBookmark(ctx, profile)
+		c.bookmarks = append(c.bookmarks, chromeBookmarks...)
 	}
 
 	for idx, bookmark := range c.bookmarks {
@@ -130,8 +128,19 @@ func (c *BrowserBookmarkPlugin) Query(ctx context.Context, query plugin.Query) (
 	return
 }
 
-func (c *BrowserBookmarkPlugin) loadChromeBookmarkInMacos(ctx context.Context, profile string) (results []Bookmark) {
-	bookmarkLocation, _ := homedir.Expand(fmt.Sprintf("~/Library/Application Support/Google/Chrome/%s/Bookmarks", profile))
+func (c *BrowserBookmarkPlugin) loadChromeBookmark(ctx context.Context, profile string) (results []Bookmark) {
+	basePath := ""
+	if util.IsMacOS() {
+		basePath = fmt.Sprintf("~/Library/Application Support/Google/Chrome/%s/Bookmarks", profile)
+	} else if util.IsWindows() {
+		basePath = fmt.Sprintf(`~\AppData\Local\Microsoft\Edge\User Data\%s\Bookmarks`, profile)
+	} else if util.IsLinux() {
+		return results
+	} else {
+		return results
+	}
+
+	bookmarkLocation, _ := homedir.Expand(basePath)
 	if _, err := os.Stat(bookmarkLocation); os.IsNotExist(err) {
 		return
 	}
