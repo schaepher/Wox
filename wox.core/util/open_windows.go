@@ -60,3 +60,7 @@ func ShellOpenFileInFolder(path string) error {
 
 	return exec.Command("explorer.exe", "/select,", absPath).Start()
 }
+
+func OpenHttp(path string) error {
+	return exec.Command("cmd", "/C", "start", path).Start()
+}

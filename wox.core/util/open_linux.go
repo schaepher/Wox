@@ -46,3 +46,7 @@ func ShellRunOutput(name string, arg ...string) ([]byte, error) {
 func ShellOpenFileInFolder(path string) error {
 	return exec.Command("xdg-open", path).Start()
 }
+
+func OpenHttp(path string) error {
+	return exec.Command("xdg-open", path).Start()
+}
