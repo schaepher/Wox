@@ -196,16 +196,7 @@ func (r *WebSearchPlugin) loadWebSearches(ctx context.Context) (webSearches []we
 	if webSearchesJson == "" {
 		defaultAdded := r.api.GetSetting(ctx, defaultWebSearchAddedKey)
 		if defaultAdded == "" {
-			webSearches = []webSearch{
-				{
-					Urls:       []string{"https://www.google.com/search?q={query}"},
-					Title:      "Search Google for {query}",
-					Keyword:    "g",
-					IsFallback: true,
-					Enabled:    true,
-					Icon:       plugin.GoogleIcon,
-				},
-			}
+			webSearches = r.defaultSettings()
 			if marshal, err := json.Marshal(webSearches); err == nil {
 				r.api.SaveSetting(ctx, webSearchesSettingKey, string(marshal), false)
 				r.api.SaveSetting(ctx, defaultWebSearchAddedKey, "true", false)
@@ -221,6 +212,30 @@ func (r *WebSearchPlugin) loadWebSearches(ctx context.Context) (webSearches []we
 	}
 
 	return
+}
+
+func (r *WebSearchPlugin) defaultSettings() []webSearch {
+	return []webSearch{
+		{
+			Urls:    []string{"https://www.google.com/search?q={query}"},
+			Title:   "Google",
+			Keyword: "g",
+			Enabled: true,
+		},
+		{
+			Urls:       []string{"https://www.bing.com/search?q={query}"},
+			Title:      "Bing",
+			Keyword:    "bi",
+			Enabled:    true,
+			IsFallback: true,
+		},
+		{
+			Urls:    []string{"https://www.baidu.com/s?wd={query}"},
+			Title:   "Baidu",
+			Keyword: "ba",
+			Enabled: true,
+		},
+	}
 }
 
 func (r *WebSearchPlugin) Query(ctx context.Context, query plugin.Query) (results []plugin.QueryResult) {
