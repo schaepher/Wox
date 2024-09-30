@@ -39,13 +39,18 @@ func (r *UrlPlugin) GetMetadata() plugin.Metadata {
 		Version:       "1.0.0",
 		MinWoxVersion: "2.0.0",
 		Runtime:       "Go",
-		Description:   "Open the typed URL from Wox",
+		Description:   "Open the typed/selected URL from Wox",
 		Icon:          urlIcon.String(),
 		Entry:         "",
 		TriggerKeywords: []string{
 			"*",
 		},
 		Commands: []plugin.MetadataCommand{},
+		Features: []plugin.MetadataFeature{
+			{
+				Name: plugin.MetadataFeatureQuerySelection,
+			},
+		},
 		SupportedOS: []string{
 			"Windows",
 			"Macos",
@@ -82,9 +87,14 @@ func (r *UrlPlugin) getReg() *regexp.Regexp {
 }
 
 func (r *UrlPlugin) Query(ctx context.Context, query plugin.Query) (results []plugin.QueryResult) {
-	if len(query.Search) >= 2 {
+	search := query.Search
+	if query.Type == plugin.QueryTypeSelection {
+		search = query.Selection.String()
+	}
+
+	if len(search) >= 2 {
 		existingUrlHistory := lo.Filter(r.recentUrls, func(item UrlHistory, index int) bool {
-			return strings.Contains(strings.ToLower(item.Url), strings.ToLower(query.Search))
+			return strings.Contains(strings.ToLower(item.Url), strings.ToLower(search))
 		})
 
 		for _, history := range existingUrlHistory {
@@ -116,9 +126,9 @@ func (r *UrlPlugin) Query(ctx context.Context, query plugin.Query) (results []pl
 		}
 	}
 
-	if len(r.reg.FindStringIndex(query.Search)) > 0 {
+	if len(r.reg.FindStringIndex(search)) > 0 {
 		results = append(results, plugin.QueryResult{
-			Title:    query.Search,
+			Title:    search,
 			SubTitle: "i18n:plugin_url_open_in_browser",
 			Score:    100,
 			Icon:     urlIcon,
@@ -127,7 +137,7 @@ func (r *UrlPlugin) Query(ctx context.Context, query plugin.Query) (results []pl
 					Name: "i18n:plugin_url_open",
 					Icon: urlIcon,
 					Action: func(ctx context.Context, actionContext plugin.ActionContext) {
-						url := query.Search
+						url := search
 						if !strings.HasPrefix(url, "http") {
 							url = "https://" + url
 						}
