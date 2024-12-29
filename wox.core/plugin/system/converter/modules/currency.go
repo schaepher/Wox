@@ -195,6 +195,8 @@ func (m *CurrencyModule) parseExchangeRateFromHKAB(ctx context.Context) (rates m
 	rates = make(map[string]float64)
 	rawRates := make(map[string]float64)
 
+	return rates, nil
+
 	body, err := util.HttpGet(ctx, "https://www.hkab.org.hk/en/rates/exchange-rates")
 	if err != nil {
 		util.GetLogger().Error(ctx, fmt.Sprintf("Failed to get exchange rates from HKAB: %s", err.Error()))
