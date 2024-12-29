@@ -4,6 +4,9 @@ go 1.23.0
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.0
+	github.com/PuerkitoBio/goquery v1.10.0
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/blevesearch/bleve v1.0.14
 	github.com/cdfmlr/ellipsis v0.0.1
 	github.com/disintegration/imaging v1.6.2
 	github.com/djherbis/buffer v1.2.0
@@ -56,28 +59,46 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.5 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/longrunning v0.6.2 // indirect
-	github.com/PuerkitoBio/goquery v1.10.0 // indirect
+	github.com/RoaringBitmap/roaring v0.4.23 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
+	github.com/blevesearch/mmap-go v1.0.2 // indirect
+	github.com/blevesearch/segment v0.9.0 // indirect
+	github.com/blevesearch/snowballstem v0.9.0 // indirect
+	github.com/blevesearch/zap/v11 v11.0.14 // indirect
+	github.com/blevesearch/zap/v12 v12.0.14 // indirect
+	github.com/blevesearch/zap/v13 v13.0.6 // indirect
+	github.com/blevesearch/zap/v14 v14.0.5 // indirect
+	github.com/blevesearch/zap/v15 v15.0.3 // indirect
+	github.com/couchbase/vellum v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dlclark/regexp2 v1.11.4 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkoukk/tiktoken-go v0.1.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/saracen/zipextra v0.0.0-20220303013732-0187cb0159ea // indirect
+	github.com/steveyen/gtreap v0.1.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tinylib/msgp v1.1.0 // indirect
 	github.com/vcaesar/keycode v0.10.1 // indirect
+	github.com/willf/bitset v1.1.10 // indirect
+	go.etcd.io/bbolt v1.3.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.56.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0 // indirect
