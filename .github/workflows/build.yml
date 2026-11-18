@@ -178,6 +178,29 @@ jobs:
         with:
           path: artifacts
 
+      # The pre-2026 fork workflow uploaded dated assets
+      # (wox-<platform>-YYYYMMDD-<sha6>[.ext]) through WebFreak001/deploy-nightly.
+      # Nothing produces those names any more, so drop them instead of leaving
+      # stale downloads next to the current builds. The pattern cannot match the
+      # stable asset names, so this is a no-op once the legacy files are gone.
+      - name: Remove legacy dated nightly assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release view nightly >/dev/null 2>&1 || { echo "nightly release does not exist yet"; exit 0; }
+          legacy=$(gh release view nightly --json assets --jq '.assets[].name' |
+            grep -E -- '-[0-9]{8}-[0-9a-f]{6}(\.|$)' || true)
+          if [ -z "$legacy" ]; then
+            echo "no legacy assets to remove"
+            exit 0
+          fi
+          while IFS= read -r asset; do
+            echo "removing $asset"
+            gh release delete-asset nightly "$asset" --yes
+          done <<< "$legacy"
+
       - name: Publish nightly release
         env:
           GH_TOKEN: ${{ github.token }}
