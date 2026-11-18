@@ -56,6 +56,9 @@ jobs:
       - name: Publish nightly release
         env:
           GH_TOKEN: ${{ github.token }}
+          # This job only downloads an artifact, so there is no checkout for gh to
+          # infer the repository from; name it explicitly.
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           # The asset name is stable, so --clobber replaces the previous nightly build
