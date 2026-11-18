@@ -4,7 +4,12 @@ on:
   push:
     branches:
       - master
+  # Allow building on demand from the fork's Actions tab, for example to rebuild
+  # Windows without pushing a new commit to master.
+  workflow_dispatch:
 
+# A reusable workflow cannot be granted more scopes than its caller, so mirror the
+# scopes build-core.yml declares (attestation needs id-token/attestations write).
 permissions:
   contents: read
   actions: write
@@ -13,102 +18,54 @@ permissions:
   artifact-metadata: write
 
 jobs:
-  test:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: install dependencies
-        run: |
-          brew update
-          brew install just nodejs flutter cocoapods pnpm lefthook go create-dmg
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-      - name: Test
-        run: make test
-  build-macos-amd64:
-    needs: test
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: install dependencies
-        run: |
-          brew update
-          brew install just nodejs flutter cocoapods pnpm lefthook go create-dmg
-      - name: Build
-        run: just release darwin-amd64
-      - name: Deploy nightly release amd64
-        uses: WebFreak001/deploy-nightly@v3.0.0
-        with:
-          upload_url: https://uploads.github.com/repos/schaepher/Wox/releases/175128313/assets{?name,label}
-          release_id: 175128313
-          asset_path: ./Release/wox-mac-amd64.dmg # path to archive to upload
-          asset_name: wox-mac-amd64-$$.dmg # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
-          asset_content_type: application/x-elf # required by GitHub API
-          max_releases: 1
-  build-macos-arm64:
-    needs: test
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: install dependencies
-        run: |
-          brew update
-          brew install just nodejs flutter cocoapods pnpm lefthook go create-dmg
-      - name: Build
-        run: just release darwin-arm64
-      - name: Deploy nightly release arm64
-        uses: WebFreak001/deploy-nightly@v3.0.0
-        with:
-          upload_url: https://uploads.github.com/repos/schaepher/Wox/releases/175128313/assets{?name,label}
-          release_id: 175128313
-          asset_path: ./Release/wox-mac-arm64.dmg # path to archive to upload
-          asset_name: wox-mac-arm64-$$.dmg # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
-          asset_content_type: application/x-elf # required by GitHub API
-          max_releases: 1
+  # The previous fork-local job ran the Flutter/just release flow, which no longer
+  # exists after rebasing onto upstream master (there is no justfile and the UI is
+  # native now). Delegate to the maintained reusable workflow instead: it owns the
+  # Windows toolchain (MSYS2 mingw, i686 compiler for the 32-bit window hook, Go,
+  # Node, Python) and uploads release/wox-windows-amd64.exe as an artifact.
   build-windows:
-    needs: test
-    runs-on: windows-latest
-    steps:
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      - uses: actions/checkout@v3
-      - name: install dependencies
-        run: |
-          choco install just nodejs flutter pnpm go upx
-      - name: Build
-        run: |
-          $Env:PATH += ";C:\tools\flutter\bin"
-          just release windows
-      - name: Deploy nightly release
-        uses: WebFreak001/deploy-nightly@v3.0.0
-        with:
-          upload_url: https://uploads.github.com/repos/schaepher/Wox/releases/175128313/assets{?name,label}
-          release_id: 175128313
-          asset_path: ./Release/wox-windows-amd64.exe # path to archive to upload
-          asset_name: wox-windows-amd64-$$.exe # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
-          asset_content_type: application/x-msdownload # required by GitHub API
-          max_releases: 1
-  build-linux:
-    needs: test
+    uses: ./.github/workflows/build-core.yml
+    with:
+      # Tests run on ubuntu-latest and are not what this fork build is about, so skip
+      # them to keep the Windows build quick. Flip to true to gate on the full suite.
+      run_tests: false
+      build_macos_arm64: false
+      build_macos_amd64: false
+      build_windows_amd64: true
+      build_linux_amd64: false
+      # No signing credentials exist on this fork; build unsigned.
+      require_macos_notarize: false
+      require_windows_signpath: false
+      artifact_retention_days: 10
+    secrets: inherit
+
+  # Keep the fork's original intent ("release to my repo"): each green master build
+  # publishes a downloadable Windows binary here instead of only inside a workflow run.
+  publish-nightly:
+    name: Publish nightly Windows build
+    needs: build-windows
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v3
-      - name: install dependencies
-        run: |
-          wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' | gpg --dearmor | sudo tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null
-          echo "deb [arch=all,$(dpkg --print-architecture) signed-by=/usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg] https://proget.makedeb.org prebuilt-mpr $(lsb_release -cs)" | sudo tee /etc/apt/sources.list.d/prebuilt-mpr.list
-          sudo apt-get update -y
-          sudo apt-get install -y just nodejs npm golang-go upx keybinder-3.0
-          sudo apt-get install xcb libxtst-dev libxcb-xkb-dev x11-xkb-utils libx11-xcb-dev libxkbcommon-x11-dev libxcomposite-dev
-          sudo snap install flutter --classic
-      - name: Build
-        run: just release linux
-      - name: Deploy nightly release
-        uses: WebFreak001/deploy-nightly@v3.0.0
+      - uses: actions/download-artifact@v8
         with:
-          upload_url: https://uploads.github.com/repos/schaepher/Wox/releases/175128313/assets{?name,label}
-          release_id: 175128313
-          asset_path: ./Release/wox-linux-amd64 # path to archive to upload
-          asset_name: wox-linux-amd64-$$ # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
-          asset_content_type: application/x-msdownload # required by GitHub API
-          max_releases: 1
+          name: wox-windows-amd64.exe
+
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The asset name is stable, so --clobber replaces the previous nightly build
+          # instead of failing on the duplicate name.
+          if gh release view nightly >/dev/null 2>&1; then
+            gh release upload nightly wox-windows-amd64.exe --clobber
+          else
+            gh release create nightly wox-windows-amd64.exe \
+              --target "$GITHUB_SHA" \
+              --prerelease \
+              --title "Nightly build" \
+              --notes "Automated build of master. Windows amd64 (unsigned) only."
+          fi
